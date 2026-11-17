@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useWSData } from "@/hooks/dataHandler";
+import { useAlarm } from "@/hooks/useAlarm";
 
 
 export default function Home() {
@@ -12,6 +13,7 @@ export default function Home() {
   const jph = data.jph ?? 0;
   const ct = data.ct ?? 0;
   const handover = data.handover ?? 0;
+  const alarm = useAlarm(data.downtime);
 
   // Info andon per kategori, dikirim Node-RED:
   // count = berapa kali andon, minutes = menit (andon aktif: durasi saat ini; selesai: total), active = sedang andon
@@ -55,6 +57,7 @@ export default function Home() {
             </div>
           </span>
           <span className="text-6xl">MAIN ASSY</span>
+          <button onClick={alarm.enabled ? alarm.disable : alarm.enable} className="text-xl px-6 py-3 rounded-full font-semibold bg-gray-800 text-teal-300">{alarm.enabled ? "Suara: ON" : "Aktifkan suara"}</button>
             <span className={`text-xl px-10 py-3 rounded-full font-semibold bg-gray-800 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] ${connected ? "text-green-400 shadow-green-500/50" : "text-red-400 shadow-red-500/50"}`}>
             <span className="motion-safe:animate-float">{connected ? "Connected" : "Disconnected"}</span>
           </span>
