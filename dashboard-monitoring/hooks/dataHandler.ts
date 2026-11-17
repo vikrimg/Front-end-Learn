@@ -5,27 +5,26 @@ import { wsClient } from "../lib/ws";
 
 const url = process.env.NEXT_PUBLIC_WS_URL;
 
-export function useWSData(){
-    const [data, setData] = useState<any>({});
-    useEffect(() => {
-        console.log("🔥 useEffect jalan");
-        console.log("WS URL:", url);
+export function useWSData() {
+  const [data, setData] = useState<any>({});
+  const [connected, setConnected] = useState(false);
 
-        if(!url){
-            console.log("URL Not defined")
-            return;
-        }
+  useEffect(() => {
+    if (!url) {
+      console.log("URL Not defined");
+      return;
+    }
 
-        wsClient.connect(url)
+    const unsubData = wsClient.subscribe(setData);
+    const unsubStatus = wsClient.onStatus(setConnected);
+    wsClient.connect(url);
 
-        wsClient.subscribe((incoming) => {
-            setData(incoming);
-        });
+    return () => {
+      unsubData();
+      unsubStatus();
+      wsClient.disconnect();
+    };
+  }, []);
 
-        return () => {
-            wsClient.disconnect();
-        };
-    },[]);
-
-    return data;
+  return { data, connected };
 }

@@ -1,19 +1,24 @@
 "use client";
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useWSData } from "@/hooks/dataHandler";
-import { clear } from "console";
 
 
 export default function Home() {
 
-  const data = useWSData();
+  const { data, connected } = useWSData();
   const target = data.target ?? 0;
   const assyOut = data.assyOut ?? 0;
   const efficiency = data.efficiency ?? 0;
   const jph = data.jph ?? 0;
   const ct = data.ct ?? 0;
   const handover = data.handover ?? 0;
+
+  // Info andon per kategori, dikirim Node-RED:
+  // count = berapa kali andon, minutes = menit (andon aktif: durasi saat ini; selesai: total), active = sedang andon
+  const andon = (key: string) => ({
+    active: false, count: 0, minutes: 0, station: "-",
+    ...(data.downtime?.[key] ?? {}),
+  });
 
   const [now, setNow] = useState<Date | null>(null);
 
@@ -50,8 +55,8 @@ export default function Home() {
             </div>
           </span>
           <span className="text-6xl">MAIN ASSY</span>
-            <span className="text-xl px-10 py-3 rounded-full font-semibold bg-gray-800 text-green-400 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] shadow-green-500/50">
-            <span className="motion-safe:animate-float">Connected</span>
+            <span className={`text-xl px-10 py-3 rounded-full font-semibold bg-gray-800 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] ${connected ? "text-green-400 shadow-green-500/50" : "text-red-400 shadow-red-500/50"}`}>
+            <span className="motion-safe:animate-float">{connected ? "Connected" : "Disconnected"}</span>
           </span>
         </div>
       </header>
@@ -66,7 +71,7 @@ export default function Home() {
           <div className="w-1/3 flex flex-col gap-4">
             <Box title="Target" value={target} icon="/icon/01_tgt.svg" />
             <Box title="Assy Out" value={assyOut} icon="/icon/02_out.svg" />
-            <Box title="EFF" value={efficiency} icon="/icon/03_eff.svg"/>
+            <Box title="EFF" value={`${efficiency}%`} icon="/icon/03_eff.svg"/>
             <Box title="JPH" value={jph} icon="/icon/04_jph.svg"/>
             <Box title="C/T" value={ct} icon="/icon/05_ct.svg"/>
           </div>
@@ -75,10 +80,10 @@ export default function Home() {
             {/* <div className=""> */}
 
               <div className="grid grid-cols-2 gap-4 flex-1">
-                <Card title="Quality" freq={20} minutes={5} warning={false}/>
-                <Card title="Logistic" freq={20} minutes={5} warning={false}/>
-                <Card title="Equipment" freq={20} minutes={5} warning={false}/>
-                <Card title="Process"freq={20} minutes={5} warning={false}/>
+                <Card title="Quality" {...cardProps(andon("quality"))}/>
+                <Card title="Logistic" {...cardProps(andon("logistic"))}/>
+                <Card title="Equipment" {...cardProps(andon("equipment"))}/>
+                <Card title="Process" {...cardProps(andon("process"))}/>
               </div>
 
               <div className="bg-gray-600 flex justify-between items-center px-6 md:h-30 text-2xl rounded-[10px]">
@@ -101,7 +106,7 @@ export default function Home() {
 
 type BoxProps = {
   title : string,
-  value : number,
+  value : number | string,
   icon? :string;
 }
 
@@ -161,10 +166,15 @@ type cardProps = {
   title: string,
   freq: number,
   minutes: number,
-  warning?: boolean
+  warning?: boolean,
+  station?: string
 }
 
-function Card({ title, freq, minutes, warning}: cardProps) {
+function cardProps(a: { active: boolean, count: number, minutes: number, station: string }) {
+  return { freq: a.count, minutes: a.minutes, warning: a.active, station: a.station };
+}
+
+function Card({ title, freq, minutes, warning, station}: cardProps) {
   return (
     // <div className='bg-gray-600 h-full flex flex-col rounded-[10px] $warning'>
     <div className={`${warning ? "bg-red-950":"bg-gray-600"} ${warning ? "shadow-[0_0_20px_5px_rgba(239,68,68,0.7)] shadow-red-500/50":""} h-full flex flex-col rounded-[10px] ${warning ? "animate-pulse":"animate-none"}`}>
@@ -176,7 +186,7 @@ function Card({ title, freq, minutes, warning}: cardProps) {
         <div className="flex flex-col h-full text-center">
             <div className="text-4xl my-10 mb-1">{warning ? "Station" : "Frequency"}</div>
             <div className="flex-1 flex items-center justify-center">
-              <div className={`${warning? "text-red-400": "text-teal-400"} text-7xl`}>{freq}</div>
+              <div className={`${warning? "text-red-400": "text-teal-400"} ${warning ? "text-6xl" : "text-7xl"}`}>{warning ? station : freq}</div>
             </div>
         </div>
 

@@ -1,0 +1,52 @@
+[
+ {
+  "id": "andonWsL",
+  "type": "websocket-listener",
+  "path": "/ws/andon",
+  "wholemsg": "false"
+ },
+ {
+  "id": "andonInj",
+  "type": "inject",
+  "z": "f77e722adaf576f5",
+  "name": "tiap 1 detik",
+  "props": [],
+  "repeat": "1",
+  "once": true,
+  "onceDelay": 1,
+  "topic": "",
+  "x": 150,
+  "y": 160,
+  "wires": [
+   [
+    "andonFn"
+   ]
+  ]
+ },
+ {
+  "id": "andonFn",
+  "type": "function",
+  "z": "f77e722adaf576f5",
+  "name": "simulasi andon",
+  "func": "// DUMMY. Tiap kategori: active (sedang andon), count (berapa kali), total (detik andon yg sudah selesai), startedAt.\n// minutes = active ? (total + durasi andon berjalan) : total, dalam menit penuh.\n// DUMMY: 1 menit = 5 detik supaya angka menit cepat berubah. Data asli: ganti jadi 60.\nconst DETIK_PER_MENIT = 5;\nconst CATS = {\n  quality:   ['MA-3-LH','MA-8-RH','FIT-FINISH'],\n  logistic:  ['MA-1-RH','SA-4','MA-11-LH'],\n  equipment: ['MA-5-LH','SA-7','DYNO'],\n  process:   ['MA-9-RH','SA-2','MA-14-LH']\n};\nlet st = context.get('st');\nif (!st) {\n  st = {};\n  for (const k in CATS) st[k] = { active:false, count:0, total:0, startedAt:0, station:'-' };\n  context.set('st', st);\n}\nconst now = Date.now();\nfor (const k in CATS) {\n  const a = st[k];\n  if (a.active) {\n    // andon selesai: durasi 5-15 detik (dummy), masuk ke total\n    if (now - a.startedAt > (5 + Math.random()*10) * 1000) {\n      a.total += Math.round((now - a.startedAt) / 1000);\n      a.active = false; a.station = '-';\n    }\n  } else if (Math.random() < 0.04) {\n    // andon baru\n    a.active = true; a.count++; a.startedAt = now;\n    a.station = CATS[k][Math.floor(Math.random()*3)];\n  }\n}\nconst dt = {};\nfor (const k in CATS) {\n  const a = st[k];\n  const secs = a.total + (a.active ? Math.round((now - a.startedAt) / 1000) : 0);\n  dt[k] = { active:a.active, count:a.count, minutes:Math.floor(secs / DETIK_PER_MENIT), station:a.station };\n}\nconst r = (a,b) => Math.floor(Math.random()*(b-a+1))+a;\nmsg.payload = { target:92, assyOut:r(50,60), efficiency:r(85,95), jph:12, ct:5, handover:34, downtime:dt, ts:new Date().toISOString() };\nreturn msg;",
+  "outputs": 1,
+  "x": 330,
+  "y": 160,
+  "wires": [
+   [
+    "andonWs"
+   ]
+  ]
+ },
+ {
+  "id": "andonWs",
+  "type": "websocket out",
+  "z": "f77e722adaf576f5",
+  "name": "",
+  "server": "andonWsL",
+  "client": "",
+  "x": 530,
+  "y": 160,
+  "wires": []
+ }
+]

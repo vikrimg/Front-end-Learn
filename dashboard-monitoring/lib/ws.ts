@@ -43,25 +43,33 @@
 // export const wsClient = new WSClient();
 
 type Callback = (data: any) => void;
+type StatusCallback = (connected: boolean) => void;
 
 class WSClient {
   private ws: WebSocket | null = null;
   private callbacks: Callback[] = [];
+  private statusCallbacks: StatusCallback[] = [];
   private url: string = "";
   private reconnectDelay = 3000; // 3 detik
   private shouldReconnect = true;
+
+  private setStatus(connected: boolean) {
+    this.statusCallbacks.forEach((cb) => cb(connected));
+  }
 
   connect(url: string) {
     this.url = url;
     this.shouldReconnect = true;
 
-    this.ws = new WebSocket(url);
+    const sock = new WebSocket(url);
+    this.ws = sock;
 
-    this.ws.onopen = () => {
+    sock.onopen = () => {
       console.log("WS Connected");
+      this.setStatus(true);
     };
 
-    this.ws.onmessage = (event) => {
+    sock.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
         this.callbacks.forEach((cb) => cb(data));
@@ -70,25 +78,39 @@ class WSClient {
       }
     };
 
-    this.ws.onclose = () => {
+    sock.onclose = () => {
+      // socket lama (sudah diganti connect baru) tidak boleh memicu apa-apa
+      if (this.ws !== sock) return;
       console.log("WS Disconnected");
+      this.setStatus(false);
 
       if (this.shouldReconnect) {
         console.log("Reconnecting in 3s...");
         setTimeout(() => {
-          this.connect(this.url);
+          if (this.shouldReconnect) this.connect(this.url);
         }, this.reconnectDelay);
       }
     };
 
-    this.ws.onerror = (err) => {
+    sock.onerror = (err) => {
       console.error("WS Error", err);
-      this.ws?.close(); // trigger onclose → reconnect
+      sock.close(); // trigger onclose -> reconnect
     };
   }
 
+  // return fungsi unsubscribe supaya callback tidak menumpuk
   subscribe(cb: Callback) {
     this.callbacks.push(cb);
+    return () => {
+      this.callbacks = this.callbacks.filter((c) => c !== cb);
+    };
+  }
+
+  onStatus(cb: StatusCallback) {
+    this.statusCallbacks.push(cb);
+    return () => {
+      this.statusCallbacks = this.statusCallbacks.filter((c) => c !== cb);
+    };
   }
 
   disconnect() {
