@@ -1,14 +1,58 @@
+"use client";
 import Image from "next/image";
+import { useEffect, useState } from "react";
+import { useWSData } from "@/hooks/dataHandler";
+import { clear } from "console";
+
 
 export default function Home() {
+
+  const data = useWSData();
+  const target = data.target ?? 0;
+  const assyOut = data.assyOut ?? 0;
+  const efficiency = data.efficiency ?? 0;
+  const jph = data.jph ?? 0;
+  const ct = data.ct ?? 0;
+  const handover = data.handover ?? 0;
+
+  const [now, setNow] = useState<Date | null>(null);
+
+  useEffect(() =>{
+    const update = () =>{
+      setNow(new Date());
+    };
+    update();
+
+    const interval = setInterval(update,1000);
+    return () => clearInterval(interval);
+  },[]);
+
+
+  let time = "--:--:--";
+  let date = "--/--/----";
+
+  if (now){
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    time = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    date = now.toLocaleDateString("id-ID"); 
+  }
   return (
     <div className="h-screen w-screen bg-gray-700 overflow-hidden flex flex-col">
 
       <header className="shrink-0">
-        <div className="bg-teal-500 text-gray-500 flex justify-between items-center px-6 py-10 text-2xl font-bold">
-          <span className="text-4xl">10:27:22</span>
+        <div className="bg-teal-500 text-gray-700 flex justify-between items-center px-6 py-10 text-2xl font-bold">
+          <span className="text-3xl">
+            <div>
+              {now ? time :"--:--:--"}
+            </div>
+            <div>
+              {now ? date : "--/--/----"}
+            </div>
+          </span>
           <span className="text-6xl">MAIN ASSY</span>
-          <span className="text-4xl">17/07/26</span>
+            <span className="text-xl px-10 py-3 rounded-full font-semibold bg-gray-800 text-green-400 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] shadow-green-500/50">
+            <span className="motion-safe:animate-float">Connected</span>
+          </span>
         </div>
       </header>
       
@@ -20,11 +64,11 @@ export default function Home() {
         <div className="m-0.5"></div>
 
           <div className="w-1/3 flex flex-col gap-4">
-            <Box title="Target" value={99} icon="/icon/01_tgt.svg" />
-            <Box title="Assy Out" value={99} icon="/icon/02_out.svg" />
-            <Box title="EFF" value={99} icon="/icon/03_eff.svg"/>
-            <Box title="JPH" value={99} icon="/icon/04_jph.svg"/>
-            <Box title="C/T" value={99} icon="/icon/05_ct.svg"/>
+            <Box title="Target" value={target} icon="/icon/01_tgt.svg" />
+            <Box title="Assy Out" value={assyOut} icon="/icon/02_out.svg" />
+            <Box title="EFF" value={efficiency} icon="/icon/03_eff.svg"/>
+            <Box title="JPH" value={jph} icon="/icon/04_jph.svg"/>
+            <Box title="C/T" value={ct} icon="/icon/05_ct.svg"/>
           </div>
 
           <div className="flex-1 flex flex-col gap-4">
@@ -32,7 +76,7 @@ export default function Home() {
 
               <div className="grid grid-cols-2 gap-4 flex-1">
                 <Card title="Quality" freq={20} minutes={5} warning={false}/>
-                <Card title="Logistic" freq={20} minutes={5} warning={true}/>
+                <Card title="Logistic" freq={20} minutes={5} warning={false}/>
                 <Card title="Equipment" freq={20} minutes={5} warning={false}/>
                 <Card title="Process"freq={20} minutes={5} warning={false}/>
               </div>
@@ -40,7 +84,7 @@ export default function Home() {
               <div className="bg-gray-600 flex justify-between items-center px-6 md:h-30 text-2xl rounded-[10px]">
                 <span></span>
                 <span className="text-5xl font-bold">Handover</span>
-                <span className="bg-teal-400 text-black text-7xl font-bold text-center md:w-160 py-5 rounded-[10px]">999</span>
+                <span className="bg-teal-400 text-black text-7xl font-bold text-center md:w-160 py-5 rounded-[10px]">{handover}</span>
               </div>
 
             {/* </div> */}
@@ -136,7 +180,7 @@ function Card({ title, freq, minutes, warning}: cardProps) {
             </div>
         </div>
 
-        <div className="w-1 bg-gray-500 self-stretch my-5 rounded-full shadow-sm shadow-gray-400/50"></div>
+        <div className={`w-1 ${warning? "bg-red-900": "bg-gray-500"} self-stretch my-5 rounded-full shadow-sm ${warning? "shadow-red-400/50": "shadow-gray-400/50"}`}></div>
         <div className="flex flex-col h-full text-center">
           <div className="text-4xl my-10 mb-1">Minutes</div>
           <div className="flex-1 flex items-center justify-center">
